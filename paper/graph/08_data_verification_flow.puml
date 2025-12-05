@@ -1,0 +1,48 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+skinparam activityDiamondBackgroundColor #FFF9C4
+skinparam activityDiamondBorderColor #333
+skinparam shadowing false
+skinparam linetype ortho
+
+start
+
+partition "源数据库" {
+  :数据分块 (Chunking);
+  
+  :计算 Chunk CRC
+  写入 **checksum_table**;
+  
+  :产生 Binlog ROW 事件;
+}
+
+partition "同步服务" {
+  :解析 Binlog 事件;
+  
+  if (是 Checksum 表事件?) then (是)
+    #FFE082:拦截并提取参数;
+    
+    :重组目标端校验 SQL;
+  else (否)
+    stop
+  endif
+}
+
+partition "目标数据库" {
+  :执行校验 SQL;
+  
+  :对比源端与目标端 CRC;
+  
+  if (一致?) then (是)
+    #C8E6C9:校验通过;
+  else (否)
+    #FFCDD2:报警: 数据不一致;
+  endif
+}
+
+stop
+
+@enduml

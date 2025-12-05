@@ -1,0 +1,46 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+skinparam activityDiamondBackgroundColor #FFF9C4
+skinparam shadowing false
+skinparam linetype ortho
+
+start
+
+:服务异常中断
+(进程崩溃/网络断开);
+
+#FFE082:读取持久化位点
+(BinlogFile, Position, GTID);
+
+:重新连接源数据库;
+
+:发起 Binlog Dump 请求
+(从 Checkpoint 位点开始);
+
+repeat
+  :接收 Binlog 事件;
+  
+  if (事件已处理?) then (是)
+    :跳过重复事件
+    (基于 GTID 或主键);
+  else (否)
+    :幂等写入目标库
+    (REPLACE / INSERT IGNORE);
+    
+    :更新内存位点;
+  endif
+  
+  :定期持久化位点
+  (批量提交后);
+  
+repeat while (服务运行中?) is (是)
+->否;
+
+:服务停止;
+
+stop
+
+@enduml

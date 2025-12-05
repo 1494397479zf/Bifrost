@@ -1,0 +1,37 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+
+start
+
+:从队列获取 Event;
+:提取库名 (Schema) 和表名 (Table);
+
+if (表在路由配置中?) then (Yes)
+    :提取分片键 (Sharding Key) 值;
+    note right: 如 UserID = 10086
+    
+    :序列化分片键值;
+    :计算 CRC32 哈希值;
+    :计算 Slot ID = CRC32 % SlotTotal;
+    note right: SlotTotal 通常为 1024 或 16384
+    
+    :查询本地路由表 (Route Table);
+    :获取 Slot ID 对应的目标存储节点;
+    
+    if (处于在线扩缩容迁移中?) then (Yes)
+        if (Slot 属于迁移源节点?) then (Yes)
+            :写入源存储节点;
+        else (No)
+            :写入新存储节点;
+        endif
+    else (No)
+        :写入目标存储节点;
+    endif
+    
+else (No)
+    :丢弃或进入默认处理;
+endif
+
+stop
+@enduml

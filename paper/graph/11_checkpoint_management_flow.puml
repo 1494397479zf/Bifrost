@@ -1,0 +1,35 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+skinparam activityDiamondBackgroundColor #FFF9C4
+skinparam shadowing false
+skinparam linetype ortho
+
+start
+
+:成功写入数据批次;
+
+:更新内存位点
+(BinlogFile, Position, GTID);
+
+if (达到持久化条件?) then (是)
+  note right
+    条件: 时间间隔 OR 
+    事务数量 OR 
+    服务关闭
+  end note
+
+  #FFE082:持久化位点到磁盘
+  (Checkpoint Flush);
+  
+  :清理旧的 Checkpoint;
+  
+else (否)
+  :继续累积;
+endif
+
+stop
+
+@enduml

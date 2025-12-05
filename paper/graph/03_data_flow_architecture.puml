@@ -1,0 +1,50 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam componentStyle rectangle
+left to right direction
+
+database "源数据库" as Source
+database "目标分布式集群" as Target
+
+rectangle "数据同步引擎" {
+    
+    package "阶段一：全量迁移" {
+        usecase "并发 Select 查询" as Select
+        usecase "快照数据分块" as Snapshot
+    }
+    
+    package "阶段二：增量同步" {
+        usecase "Binlog Dump" as Dump
+        usecase "事件解析" as Parse
+    }
+    
+    queue "内部事件队列 (Channel)" as Queue
+    
+    package "路由与分发" {
+        usecase "Slot 哈希计算" as SlotCalc #FFE082
+        usecase "路由表映射" as Map
+    }
+    
+    package "写入执行" {
+        usecase "批量提交缓冲" as Batch
+        usecase "输出插件适配" as Plugin
+    }
+}
+
+' 数据流向
+Source == Select : 1. 读取全量
+Select --> Snapshot
+Snapshot --> Queue
+
+Source .. Dump : 2. 订阅变更
+Dump --> Parse
+Parse --> Queue
+
+Queue --> SlotCalc
+SlotCalc --> Map
+Map --> Batch
+Batch --> Plugin
+Plugin == Target : 分片写入
+
+@enduml

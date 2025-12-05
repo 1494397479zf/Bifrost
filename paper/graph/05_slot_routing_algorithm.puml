@@ -1,0 +1,28 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+
+start
+
+:接收数据事件
+(INSERT/UPDATE/DELETE);
+
+:提取分片键字段值
+(如: user_id, order_id);
+
+#FFE082:计算 Slot Hash 值
+Hash(分片键) % Slot总数;
+
+:查询路由表
+Slot → 目标分片映射;
+
+:确定目标分片节点
+(分片组 ID + MySQL 连接);
+
+:路由数据到目标节点;
+
+stop
+
+@enduml

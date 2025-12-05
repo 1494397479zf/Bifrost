@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+skinparam componentStyle uml2
+skinparam defaultFontName "SimHei"
+
+package "应用接入层" {
+    [游戏业务应用] as App
+    [负载均衡 LVS/TGW] as LB
+}
+
+package "目标分布式数据库集群 (Spider架构)" {
+    package "控制与调度层" {
+        component "控制节点\n(元数据/调度/分片管理)" as CenterNode #FFF9C4
+    }
+
+    package "路由计算层" {
+        node "路由节点 1 (Spider)" as Spider1
+        node "路由节点 2 (Spider)" as Spider2
+    }
+
+    package "数据存储层" {
+        frame "分片组 1" {
+            database "存储节点 A (Master)" as M1
+            database "存储节点 A (Slave)" as S1
+            M1 -> S1 : 复制
+        }
+        frame "分片组 2" {
+            database "存储节点 B (Master)" as M2
+            database "存储节点 B (Slave)" as S2
+            M2 -> S2 : 复制
+        }
+        frame "分片组 3" {
+            database "存储节点 C (Master)" as M3
+            database "存储节点 C (Slave)" as S3
+            M3 -> S3 : 复制
+        }
+    }
+}
+
+package "本课题系统" {
+    component "迁移与扩缩容引擎" as Engine #E1F5FE
+}
+
+' 关系连接
+App --> LB
+LB --> Spider1
+LB --> Spider2
+
+Spider1 --> M1
+Spider1 --> M2
+Spider1 --> M3
+Spider2 --> M1
+Spider2 --> M2
+Spider2 --> M3
+
+CenterNode .down.> Spider1 : 下发路由规则
+CenterNode .down.> Spider2 : 下发路由规则
+CenterNode .down.> M1 : 监控与HA
+CenterNode .down.> M2 : 监控与HA
+CenterNode .down.> M3 : 监控与HA
+
+Engine .up.> CenterNode : 1.获取分片拓扑
+Engine =down=> M1 : 2.直接写入
+Engine =down=> M2 : 2.直接写入
+Engine =down=> M3 : 2.直接写入
+
+@enduml

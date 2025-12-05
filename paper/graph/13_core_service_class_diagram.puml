@@ -1,0 +1,81 @@
+@startuml
+!theme plain
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam monochrome true
+
+' === 专业学术风格 ===
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam classFontName "Arial"
+skinparam defaultFontName "Arial"
+
+' === 核心类定义 ===
+
+class BifrostManager {
+    - dbMap: Map<String, DB>
+    --
+    + GetDB(name: String): DB
+    + LoadDB(): void
+    + Start(): void
+}
+
+class DB {
+    - Name: String
+    - ConnectUri: String
+    - channelMap: Map<int, Channel>
+    - binlogDump: BinlogReader
+    --
+    + Start(): void
+    + Stop(): void
+    + AddChannel(channel: Channel): void
+}
+
+class Channel {
+    - ChannelID: int
+    - Name: String
+    - Status: ChannelStatus
+    - CurrentPosition: PositionStruct
+    - toServerPlugin: ToServer
+    --
+    + PushEvent(event: BinlogEvent): bool
+    + GetToServer(): ToServer
+    + UpdatePosition(pos: PositionStruct): void
+}
+
+class PositionStruct {
+    + BinlogFile: String
+    + Position: uint32
+    + GTID: String
+    + Timestamp: uint32
+}
+
+class ToServer {
+    - PluginName: String
+    - ConnParam: Map
+    - LastSuccessPos: PositionStruct
+    --
+    + Insert(data: []Data): bool
+    + Update(data: []Data): bool
+    + Delete(data: []Data): bool
+    + Commit(pos: PositionStruct): bool
+}
+
+interface ToServerInterface <<interface>> {
+    + Insert(data: []Data): bool
+    + Update(data: []Data): bool
+    + Delete(data: []Data): bool
+    + Commit(pos: PositionStruct): bool
+}
+
+' === 关系定义（UML 标准标注）===
+
+BifrostManager "1" *-- "0..*" DB
+DB "1" *-- "0..*" Channel
+Channel "1" --> "1" ToServer
+Channel "1" --> "1" PositionStruct : +currentPosition
+ToServer ..|> ToServerInterface
+ToServer "1" --> "1" PositionStruct : +lastSuccessPos
+
+@enduml

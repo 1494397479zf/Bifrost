@@ -1,0 +1,24 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam stateBorderColor #333
+skinparam stateBackgroundColor #E3F2FD
+skinparam shadowing false
+left to right direction
+
+state "Received\n(已接收)" as s1
+state "Parsed\n(已解析)" as s2
+state "Buffered\n(进入队列)" as s3
+state "Committed\n(提交目标)" as s4 #C8E6C9
+state "Saved\n(位点持久化)" as s5
+
+[*] --> s1 : Binlog Event
+s1 --> s2 : Decode
+s2 --> s3 : Filter Pass
+s2 --> [*] : Filter Ignore
+
+s3 --> s4 : Batch Flush
+s4 --> s5 : Update Checkpoint
+s5 --> [*]
+
+@enduml

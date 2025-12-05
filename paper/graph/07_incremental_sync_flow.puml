@@ -1,0 +1,54 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+skinparam activityDiamondBackgroundColor #FFF9C4
+skinparam activityDiamondBorderColor #333
+skinparam shadowing false
+skinparam linetype ortho
+
+start
+
+#FFE082:从 Binlog 位点 T1 开始订阅;
+
+repeat
+  :Binlog Dump 读取事件;
+  :解析事件类型;
+  if (需要过滤?) then (是)
+    :跳过;
+  else (否)
+    :推送到 Channel 队列;
+  endif
+repeat while (继续订阅?) is (是)
+
+:Channel 消费线程池处理;
+
+:根据表配置分发到 ToServer;
+
+' 使用 split 替代 fork，去除粗黑线
+split
+  :ToServer 1\n批量缓冲;
+split again
+  :ToServer 2\n批量缓冲;
+split again
+  :ToServer N\n批量缓冲;
+end split
+
+:Slot 路由计算
+(在插件层实现);
+
+' 再次使用 split 展示分片写入
+split
+  :写入分片 1;
+split again
+  :写入分片 2;
+split again
+  :写入分片 3;
+end split
+
+:保存位点;
+
+stop
+
+@enduml

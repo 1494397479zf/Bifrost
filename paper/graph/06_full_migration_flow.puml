@@ -1,0 +1,65 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+
+start
+
+:主线程加全局读锁
+FLUSH TABLES WITH READ LOCK;
+
+:主线程开启一致性快照
+START TRANSACTION WITH CONSISTENT SNAPSHOT;
+
+#FFE082:记录 Binlog 位点 (T1)
+SHOW MASTER STATUS;
+
+fork
+  :子线程 1 开启快照
+  START TRANSACTION ...;
+fork again
+  :子线程 2 开启快照
+  START TRANSACTION ...;
+fork again
+  :子线程 N 开启快照
+  START TRANSACTION ...;
+end fork
+
+:主线程释放全局读锁
+UNLOCK TABLES;
+
+note right
+  此时各子线程的快照
+  已建立，可以安全解锁
+end note
+
+fork
+  :子线程 1 并发导出
+  SELECT * FROM t1 WHERE id BETWEEN ...;
+fork again
+  :子线程 2 并发导出
+  SELECT * FROM t2 WHERE id BETWEEN ...;
+fork again
+  :子线程 N 并发导出
+  SELECT * FROM tN WHERE id BETWEEN ...;
+end fork
+
+:数据分块处理;
+
+fork
+  :分块 1 → 路由计算 → 目标分片 1;
+fork again
+  :分块 2 → 路由计算 → 目标分片 2;
+fork again
+  :分块 N → 路由计算 → 目标分片 3;
+end fork
+
+:全量数据写入完成;
+
+:提交事务并释放快照
+COMMIT;
+
+stop
+
+@enduml

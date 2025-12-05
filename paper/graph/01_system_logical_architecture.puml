@@ -1,0 +1,82 @@
+@startuml
+!theme plain
+skinparam componentStyle rectangle
+skinparam defaultFontName "SimHei"
+skinparam defaultTextAlignment center
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 80
+
+' ==========================================
+' 第一层：Web 管理层
+' ==========================================
+together {
+    rectangle "**第一层：Web 管理层**" as Layer1 #E3F2FD {
+        component "Web 控制台" as Web
+        component "API 网关" as API
+        component "任务配置 | 监控告警" as Modules
+    }
+}
+
+' ==========================================
+' 第二层：核心服务层
+' ==========================================
+together {
+    rectangle "**第二层：核心服务层**" as Layer2 #E1F5FE {
+        component "任务调度引擎" as Scheduler
+        component "连接管理" as ConnMgr
+        component "状态与位点管理" as StateMgr
+    }
+}
+
+' ==========================================
+' 第三层：数据处理层
+' ==========================================
+together {
+    rectangle "**第三层：数据处理层**" as Layer3 #E0F2F1 {
+        component "Binlog 解析器" as Parser
+        component "↓\n事件转换 → 过滤 → **Slot 路由**" as Pipeline #FFF9C4
+    }
+}
+
+' ==========================================
+' 第四层：插件适配层
+' ==========================================
+together {
+    rectangle "**第四层：插件适配层**" as Layer4 #FFF3E0 {
+        component "输入/输出接口 (IInput / IOutput)" as Interface
+        component "MySQL 插件 | **Spider 插件** | Kafka 插件" as Plugins
+    }
+}
+
+' ==========================================
+' 第五层：基础设施层
+' ==========================================
+together {
+    rectangle "**第五层：基础设施层**" as Layer5 #F3E5F5 {
+        database "Etcd (元数据)" as Etcd
+        database "Prometheus (监控)" as Prom
+    }
+}
+
+' ==========================================
+' 强制垂直对齐 + 中心连接
+' ==========================================
+
+' 使用 hidden 连线强制垂直排列
+Layer1 -[hidden]down- Layer2
+Layer2 -[hidden]down- Layer3
+Layer3 -[hidden]down- Layer4
+Layer4 -[hidden]down- Layer5
+
+' 主要数据流向（垂直中心线）
+API =down=> Scheduler : 任务指令
+Scheduler =down=> Parser : 启动同步
+Pipeline =down=> Interface : 事件分发
+Interface =down=> Plugins : 插件调用
+
+' 辅助连接（状态管理）
+StateMgr .down.> Etcd : 元数据持久化
+Scheduler .down.> Prom : 指标上报
+
+@enduml

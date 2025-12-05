@@ -1,0 +1,43 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+skinparam activityDiamondBackgroundColor #FFF9C4
+skinparam shadowing false
+skinparam linetype ortho
+
+start
+
+repeat
+  :采集核心指标
+  (延迟/TPS/队列深度);
+  
+  #FFE082:性能瓶颈分析;
+  
+  if (需要调优?) then (是)
+    
+    split
+      :延迟过高
+      -> **增加并发线程**;
+    split again
+      :IO 吞吐不足
+      -> **增大批量大小**;
+    split again
+      :内存/CPU 告警
+      -> **触发流控/降级**;
+    end split
+    
+    :应用参数调整;
+    
+  else (否)
+    :维持当前配置;
+  endif
+  
+  :等待下一个周期;
+  
+repeat while (持续监控)
+
+stop
+
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam shadowing false
+skinparam linetype ortho
+left to right direction
+
+' 美化样式
+skinparam rectangle {
+    BackgroundColor #E3F2FD
+    BorderColor #1565C0
+    RoundCorner 10
+}
+skinparam arrow {
+    Color #555
+    Thickness 1.5
+}
+
+rectangle "<b>Step 1: 源端配置</b>\n====\n1. 输入 IP/Port/User\n2. 测试连通性\n3. 确定数据源" as step1
+
+rectangle "<b>Step 2: 对象选择</b>\n====\n1. 加载库表列表\n2. 勾选目标表\n3. 设置过滤(Ignore/Do)" as step2
+
+rectangle "<b>Step 3: 目标映射</b>\n====\n1. 选择目标插件(To)\n2. 配置连接参数\n3. 字段映射(Mapping)" as step3
+
+rectangle "<b>Step 4: 确认与启动</b>\n====\n1. 设置 BatchSize\n2. 指定位点(可选)\n3. <color:green><b>提交并启动</b></color>" as step4
+
+step1 -right-> step2
+step2 -right-> step3
+step3 -right-> step4
+
+@enduml

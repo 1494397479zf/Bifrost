@@ -1,0 +1,27 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam stateBorderColor #333
+skinparam stateBackgroundColor #E3F2FD
+skinparam shadowing false
+left to right direction
+
+state "Running (运行中)" as running #C8E6C9
+state "Paused (已停止)" as paused
+state "Error (异常等待)" as error #FFCDD2
+
+' 定义一个逻辑判断节点
+state c1 <<choice>>
+
+[*] --> paused
+paused --> running : 启动
+running --> paused : 手动停止
+
+running --> error : 发生异常
+error --> c1 : 触发重试机制
+
+c1 --> running : [重连成功]
+c1 --> error : [失败且次数 < Max]\n(等待下次重试)
+c1 --> paused : [失败且次数 >= Max]\n(放弃并报警)
+
+@enduml

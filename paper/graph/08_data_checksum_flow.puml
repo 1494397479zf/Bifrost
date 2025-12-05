@@ -1,0 +1,40 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+
+start
+
+partition "源端 CRC 计算" {
+    :Binlog 解析器识别到 Heartbeat/Check 事件;
+    :或者定时器触发全量分块校验;
+    :在源端执行 SELECT CRC32(CONCAT(...));
+    :获取源端 CRC 值;
+}
+
+partition "校验任务调度" {
+    :生成校验任务 (CheckTask);
+    :包含 CRC 值、数据范围、Schema/Table;
+    :放入校验队列;
+}
+
+partition "目标端 CRC 对比" {
+    :从校验队列取出任务;
+    :在目标端对应分片执行相同范围的 CRC 计算;
+    :获取目标端 CRC 值;
+}
+
+if (源端 CRC == 目标端 CRC ?) then (Yes)
+    :校验通过;
+    :更新校验进度;
+else (No)
+    :校验失败 (不一致);
+    :记录差异日志 (Diff Log);
+    :触发告警;
+    if (开启自动修复?) then (Yes)
+        :生成修复 SQL (REPLACE INTO ...);
+        :执行修复;
+    endif
+endif
+
+stop
+@enduml

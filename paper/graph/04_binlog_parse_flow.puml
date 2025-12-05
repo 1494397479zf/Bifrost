@@ -1,0 +1,79 @@
+@startuml
+!theme plain
+skinparam defaultFontName "SimHei"
+skinparam activityBorderColor #333
+skinparam activityBackgroundColor #E3F2FD
+
+start
+
+:发起 Binlog Dump 请求
+COM_BINLOG_DUMP / COM_BINLOG_DUMP_GTID;
+
+repeat
+
+  :读取 Binlog 事件包;
+  
+  :解析事件头
+  (Timestamp, EventType, LogPos);
+  
+  switch (事件类型?)
+  case (TABLE_MAP_EVENT)
+    :解析表结构信息;
+    :缓存 TableId -> TableMap;
+    #FFE082:记录 lastMapEvent;
+    
+  case (WRITE_ROWS_EVENT)
+    :解析插入数据行;
+    :构造 INSERT 事件;
+    
+  case (UPDATE_ROWS_EVENT)
+    :解析更新前后数据;
+    :构造 UPDATE 事件;
+    
+  case (DELETE_ROWS_EVENT)
+    :解析删除数据行;
+    :构造 DELETE 事件;
+    
+  case (QUERY_EVENT)
+    if (是 DDL?) then (是)
+      :解析 DDL 语句;
+      #FFF9C4:插入 BEGIN/COMMIT 事件;
+    else (否)
+      :跳过 BEGIN/COMMIT;
+    endif
+    
+  case (XID_EVENT)
+    :事务提交标记;
+    
+  case (ROTATE_EVENT)
+    :切换到新的 Binlog 文件;
+    
+  case (其他事件)
+    :根据 eventDo 配置处理;
+    
+  endswitch
+  
+  if (需要过滤该表?) then (是)
+    :跳过该事件;
+    stop
+  endif
+  
+  if (需要过滤该事件类型?) then (是)
+    :跳过该事件;
+    stop
+  endif
+  
+  :回调函数
+  推送到事件队列 (Channel);
+  
+  :保存 Binlog 位点
+  (BinlogFileName, LogPos, EventID);
+
+repeat while (继续订阅?) is (是)
+->否;
+
+:连接断开或停止;
+
+stop
+
+@enduml

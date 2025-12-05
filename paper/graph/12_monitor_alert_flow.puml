@@ -1,0 +1,46 @@
+@startuml
+!theme plain
+skinparam defaultFontName "Arial"
+skinparam shadowing false
+skinparam linetype ortho
+skinparam monochrome true
+
+|监控系统|
+start
+
+:定时采集指标;
+note right
+  - 同步延迟 (Lag)
+  - 队列深度 (Queue)
+  - 任务状态 (Status)
+end note
+
+:规则匹配;
+
+if (超过阈值?) then (是)
+  
+  |告警管理器|
+  :检查告警历史;
+  
+  if (在静默期内?) then (是)
+    :抑制告警;
+    stop
+  else (否)
+    :发送告警通知;
+    note right
+      邮件/钉钉/微信
+    end note
+    
+    :记录告警时间;
+  endif
+  
+else (否)
+  stop
+endif
+
+|监控系统|
+:等待下一周期;
+
+stop
+
+@enduml
